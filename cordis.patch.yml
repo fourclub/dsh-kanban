@@ -1,0 +1,5 @@
+# dsh-kanban bundle patch: inserts the plugin layer into the profile composition.
+# Resolved from the profile's node_modules after install or a Git checkout.
+- insert:
+    - id: dsh-kanban
+      name: "dsh-kanban"
