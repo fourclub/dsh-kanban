@@ -135,7 +135,7 @@ const TASK_TAB_KIND = "dsh-kanban-task"
 
 export const KanbanPlugin = {
   name: "dsh-kanban",
-  inject: ["slots", "workspaces", "sessions", "sidebarRight", "sidebarRightTabs"],
+  inject: ["slots", "workspaces", "sessions", "sidebarRightTabs"],
   apply(ctx: any) {
     const slots = ctx.get("slots")
     if (slots === undefined) return

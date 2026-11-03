@@ -193,7 +193,7 @@ export function apply(ctx) {
           stats.subagents = Array.isArray(children) ? children.filter((c) => c.kind === 'child').length : 0
         } catch { /* subagent catalog unavailable */ }
       }
-      stats.agents = stats.subagents > 0 ? stats.subagents + 1 : 0
+      stats.agents = 1 + stats.subagents
       return stats
     }
     const withStats = async (value) => {
