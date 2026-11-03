@@ -39,7 +39,7 @@ dsh plugin --profile desktop add /path/to/dsh-kanban
 
 ## Инструменты агента
 
-`kanban_get` · `kanban_get_item` · `kanban_create_item` · `kanban_update_item` · `kanban_move_item` · `kanban_next` · `kanban_set_status` · `kanban_delete_item` · `kanban_set_code`
+`kanban_get` · `kanban_get_item` · `kanban_create_item` · `kanban_update_item` · `kanban_move_item` · `kanban_next` · `kanban_assign` · `kanban_set_status` · `kanban_delete_item` · `kanban_set_code`
 
 `kanban_next` берёт первую готовую задачу из «Можно делать», переводит её в «В работе» и привязывает к текущей сессии.
 
@@ -67,9 +67,4 @@ CI не требуется: артефакт клиента и хост-код �
 
 ## Лицензия
 
-MIT. Архитектура вдохновлена `dsh-kanban-flow` (MIT); см. `LICENSE` и раздел Credits ниже.
-
-## Credits
-
-- `dsh-kanban-flow` (https://github.com/thomasvvugt/dsh-kanban-flow) — MIT, архитектура хоста, состояние доски и драйвер агентских сессий.
-- `dsh-kanban` (https://github.com/alpacachen/dsh-kanban) — оригинальная идея плагина.
+MIT — см. `LICENSE`.

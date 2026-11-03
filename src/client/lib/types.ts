@@ -10,6 +10,10 @@ export interface Item {
   sessionId: string | null
   createdAt: string | null
   createdBy: Actor
+  assignee: string | null
+  assignedAt?: string | null
+  startedAt?: string | null
+  completedAt?: string | null
   draft: boolean
   priority: "low" | "normal" | "high" | "urgent"
   labels: string[]

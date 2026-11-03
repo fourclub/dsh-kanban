@@ -29,6 +29,18 @@ function StatChip({ icon, value, title }: { icon: string; value: number; title: 
   )
 }
 
+function fmtElapsed(from: string | null | undefined): string {
+  if (!from) return ""
+  const ms = Date.now() - new Date(from).getTime()
+  if (!Number.isFinite(ms) || ms < 0) return ""
+  const minutes = Math.floor(ms / 60000)
+  if (minutes < 1) return "<1 мин"
+  if (minutes < 60) return minutes + " мин"
+  const hours = Math.floor(minutes / 60)
+  if (hours < 24) return hours + " ч " + (minutes % 60) + " мин"
+  return Math.floor(hours / 24) + " д " + (hours % 24) + " ч"
+}
+
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <label className="kf-field">
@@ -235,6 +247,12 @@ export function TaskPanel({ sessions }: TaskPanelProps) {
         <>
           <div className="kf-task-panel-meta">
             <span>Колонка: <b>{COLUMN_TITLES[item.columnId as ColumnId]}</b></span>
+            <span>
+              Исполнитель: <b>{item.assignee || "не назначен"}</b>
+              {item.assignedAt ? " · назначен " + relTime(item.assignedAt) : ""}
+            </span>
+            {item.startedAt && <span>В работе: <b>{fmtElapsed(item.startedAt)}</b></span>}
+            <span>Шагов: <b>{activities.length}</b></span>
             {item.createdBy === "agent" ? <span>Создал агент</span> : <span>Создали вы</span>}
             {item.updatedAt && <span>Изменено {relTime(item.updatedAt)}</span>}
           </div>
@@ -296,6 +314,9 @@ export function TaskPanel({ sessions }: TaskPanelProps) {
           <div className="kf-task-activity-title">История</div>
           {activities.map((activity) => (
             <div className="kf-task-activity-row" key={activity.id}>
+              <span className="kf-task-activity-icon" aria-hidden="true">
+                {activity.type === "item_assigned" ? "👤" : activity.type === "item_status" ? "💬" : activity.type === "item_moved" ? "➜" : activity.type === "item_created" ? "＋" : "•"}
+              </span>
               <span className="kf-task-activity-time">{relTime(activity.ts)}</span>
               <span className="kf-task-activity-text">
                 {activity.type === "item_moved"
@@ -306,7 +327,9 @@ export function TaskPanel({ sessions }: TaskPanelProps) {
                       ? activity.to === "ready" ? "передано в работу" : "возвращено в черновик"
                       : activity.type === "item_status"
                         ? "статус агента обновлён"
-                        : activity.type === "item_updated"
+                        : activity.type === "item_assigned"
+                          ? "назначен исполнитель: " + (activity.text || "снят")
+                          : activity.type === "item_updated"
                           ? "задача отредактирована"
                           : activity.type}
               </span>

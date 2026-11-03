@@ -14,6 +14,8 @@ import { ArchiveSync, BoardDismiss, BoardOpener, BoardTabToggle, ClickMode, Side
 import { initAgentDriver } from "./lib/AgentDriver"
 import { resolveBoardWorkspace } from "./lib/resolve"
 import { requestTaskPanel } from "./lib/task-panel"
+import { callFlow } from "./lib/api"
+import { notifyBoard } from "./lib/AgentDriver"
 
 interface WorkspaceSnapshot {
   items: Array<{ workspaceId: string; title: string; sessionIds: string[] }>
@@ -96,6 +98,29 @@ function SettingsTabView() {
   return h(SettingsTab)
 }
 
+function BoardWatcher({ workspaces }: { workspaces?: WorkspacesService }) {
+  useEffect(() => {
+    if (!workspaces || !workspaces.list) return
+    let disposed = false
+    const tick = async () => {
+      const snapshot = workspaces.list.getSnapshot() as WorkspaceSnapshot | undefined
+      const items = Array.isArray(snapshot?.items) ? snapshot.items : []
+      for (const workspace of items) {
+        const response = await callFlow("get", {}, workspace.workspaceId)
+        if (disposed) return
+        if (response && response.board) notifyBoard(workspace.workspaceId, response.board)
+      }
+    }
+    void tick()
+    const timer = window.setInterval(() => { void tick() }, 5000)
+    return () => {
+      disposed = true
+      window.clearInterval(timer)
+    }
+  }, [workspaces])
+  return null
+}
+
 function RootControllers(props: { workspaces?: WorkspacesService; sessions?: SessionsServiceFull }) {
   useEffect(() => {
     const sessions = props.sessions
@@ -127,6 +152,7 @@ function RootControllers(props: { workspaces?: WorkspacesService; sessions?: Ses
     h(ArchiveSync, { workspaces: props.workspaces }),
     h(SidebarIcons, { workspaces: props.workspaces }),
     h(ClickMode, { workspaces: props.workspaces }),
+    h(BoardWatcher, { workspaces: props.workspaces }),
   )
 }
 

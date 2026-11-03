@@ -74,13 +74,26 @@ interface CardProps {
   item: Item
   flash: boolean
   lastActivity?: ActivityParts
+  stepCount: number
   onOpenSession: () => void
   onDetails: () => void
   onReady: () => void
   onArchive: () => void
 }
 
-function KfCard({ item, flash, lastActivity, onOpenSession, onDetails, onReady, onArchive }: CardProps) {
+function fmtElapsed(from: string | null | undefined): string {
+  if (!from) return ""
+  const ms = Date.now() - new Date(from).getTime()
+  if (!Number.isFinite(ms) || ms < 0) return ""
+  const minutes = Math.floor(ms / 60000)
+  if (minutes < 1) return "<1 мин"
+  if (minutes < 60) return minutes + " мин"
+  const hours = Math.floor(minutes / 60)
+  if (hours < 24) return hours + " ч " + (minutes % 60) + " мин"
+  return Math.floor(hours / 24) + " д " + (hours % 24) + " ч"
+}
+
+function KfCard({ item, flash, lastActivity, stepCount, onOpenSession, onDetails, onReady, onArchive }: CardProps) {
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({ id: item.id })
   // Hover status tooltip: shows ONLY the agent's statusNote after a short
   // delay; suppressed while dragging. Rendered through a portal because
@@ -128,7 +141,8 @@ function KfCard({ item, flash, lastActivity, onOpenSession, onDetails, onReady, 
       className={
         "kf-card" + (flash ? " kf-agent-flash" : "") +
         (item.sessionId ? " kf-has-session" : "") +
-        (isDragging ? " kf-dragging" : "")
+        (isDragging ? " kf-dragging" : "") +
+        " kf-priority-" + (item.priority || "normal")
       }
       style={{ ["--kf-card-accent" as string]: "var(--kf-accent, var(--dsw-alias-label-secondary))" }}
       onMouseEnter={tipOn}
@@ -159,6 +173,14 @@ function KfCard({ item, flash, lastActivity, onOpenSession, onDetails, onReady, 
         )}
       </div>
       <div className="kf-card-name">{item.name}</div>
+      <div className="kf-card-owner">
+        <span className={"kf-owner-dot" + (item.assignee ? " kf-owner-set" : "")} />
+        <span className="kf-owner-name" title={item.assignee ? "Исполнитель: " + item.assignee : "Исполнитель ещё не назначен"}>
+          {item.assignee || (item.draft ? "Черновик — не назначен" : "Ожидает агента")}
+        </span>
+        {item.startedAt && <span className="kf-card-timer" title="В работе">⏱ {fmtElapsed(item.startedAt)}</span>}
+        {stepCount > 0 && <span className="kf-card-steps" title="Шагов по задаче">{stepCount} шаг(ов)</span>}
+      </div>
       {item.stats && (item.stats.agents > 0 || item.stats.subagents > 0 || item.stats.jobs > 0) && (
         <div className="kf-card-stats">
           {item.stats.agents > 0 && <span className="kf-stat-chip" title="Агенты, участвующие в задаче">🤖 {item.stats.agents}</span>}
@@ -237,6 +259,7 @@ interface ColumnProps {
   items: Item[]
   flashIds: Set<string>
   lastLines: Map<string, ActivityParts>
+  stepCounts: Map<string, number>
   onAdd: (name: string, description: string) => void
   onCancelAdd: () => void
   onOpenSession: (item: Item) => void
@@ -245,7 +268,7 @@ interface ColumnProps {
   onArchive: (item: Item) => void
 }
 
-function KfColumn({ colId, highlighted, adding, items, flashIds, lastLines, onAdd, onCancelAdd, onOpenSession, onDetails, onReady, onArchive }: ColumnProps) {
+function KfColumn({ colId, highlighted, adding, items, flashIds, lastLines, stepCounts, onAdd, onCancelAdd, onOpenSession, onDetails, onReady, onArchive }: ColumnProps) {
   const { setNodeRef } = useDroppable({ id: colId })
   return (
     <div className={"kf-column kf-" + colId + (highlighted ? " kf-over" : "")}>
@@ -262,6 +285,7 @@ function KfColumn({ colId, highlighted, adding, items, flashIds, lastLines, onAd
             item={item}
             flash={flashIds.has(item.id)}
             lastActivity={lastLines.get(item.id)}
+            stepCount={stepCounts.get(item.id) || 0}
             onOpenSession={() => onOpenSession(item)}
             onDetails={() => onDetails(item)}
             onReady={() => onReady(item)}
@@ -425,6 +449,17 @@ export function KanbanBoard(props: KanbanBoardProps) {
     return m
   }, [board])
 
+  const stepCounts = useMemo(() => {
+    const m = new Map<string, number>()
+    for (const a of board?.activities ?? []) {
+      if (!a.itemId) continue
+      if (["item_status", "item_assigned", "item_moved", "item_updated", "item_draft"].includes(a.type)) {
+        m.set(a.itemId, (m.get(a.itemId) || 0) + 1)
+      }
+    }
+    return m
+  }, [board])
+
   const header = board && (
     <div className="kf-header">
       <span className="kf-header-title">
@@ -476,6 +511,7 @@ export function KanbanBoard(props: KanbanBoardProps) {
               items={items}
               flashIds={flashIds}
               lastLines={lastLines}
+              stepCounts={stepCounts}
               onAdd={(name, description) => {
                 void act("createItem", { name, description, columnId: "backlog" })
                 setAdding(null)

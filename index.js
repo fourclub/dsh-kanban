@@ -30,6 +30,7 @@ import {
   setConfirmRequired,
   setStatus,
   setDraft,
+  assignItem,
   deriveCode,
 } from './lib/core.js'
 
@@ -259,6 +260,10 @@ export function apply(ctx) {
       case 'moveItem': {
         const r = moveItem(board, { id: a.id, toColumn: a.toColumn, actor })
         if (r.error) return fail(r.error)
+        if (a.toColumn === 'in_progress') {
+          const item = board.items.find((i) => i.id === a.id)
+          if (item && !item.assignee) assignItem(board, { id: item.id, assignee: actor === 'agent' ? 'Агент' : 'Человек', actor })
+        }
         if (typeof a.sessionId === 'string' && a.sessionId) {
           const item = board.items.find((i) => i.id === a.id)
           if (item && !item.sessionId) item.sessionId = a.sessionId
@@ -275,6 +280,12 @@ export function apply(ctx) {
       }
       case 'setCode': {
         const r = setCode(board, String(a.code || ''), true)
+        if (r.error) return fail(r.error)
+        await save(workspace, session)
+        return ok({ message: r.message })
+      }
+      case 'assignItem': {
+        const r = assignItem(board, { id: String(a.id || ''), assignee: a.assignee, actor })
         if (r.error) return fail(r.error)
         await save(workspace, session)
         return ok({ message: r.message })
@@ -515,6 +526,7 @@ export function apply(ctx) {
         if (moved.error) return { ok: false, message: moved.error, warnings: [] }
         const item = board.items.find((i) => i.id === candidate.id)
         if (item && session && !item.sessionId) item.sessionId = session.id
+        if (item && !item.assignee) assignItem(board, { id: item.id, assignee: 'Агент', actor: 'agent' })
         await save(workspace, session)
         return {
           ok: true,
@@ -524,6 +536,21 @@ export function apply(ctx) {
           warnings: takeWarnings(workspace),
         }
       },
+    },
+    {
+      name: 'kanban_assign',
+      description: 'Assign a kanban item to an executor (for example the Lead, a named agent, a subagent or a person). Pass an empty string to clear the assignee. The human can also assign from the task panel.',
+      parameters: {
+        type: 'object',
+        properties: {
+          id: { type: 'string', description: 'Item id' },
+          assignee: { type: 'string', description: 'Executor label; empty string clears it' },
+        },
+        required: ['id', 'assignee'],
+        additionalProperties: false,
+      },
+      output: output(renderSummary),
+      async execute(args, exec) { return runTool('assignItem', args, exec) },
     },
     {
       name: 'kanban_set_status',

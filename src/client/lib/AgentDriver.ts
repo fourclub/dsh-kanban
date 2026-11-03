@@ -99,6 +99,7 @@ async function ensureSession(workspaceId: string, board: Board, item: Item): Pro
   try {
     const sessionId = await services.createSession(workspaceId)
     await callFlow("setSession", { id: item.id, sessionId }, workspaceId)
+    await callFlow("assignItem", { id: item.id, assignee: "Агент · " + String(sessionId).slice(0, 8) }, workspaceId)
     item.sessionId = sessionId // local mirror so subsequent prompts reuse it
     return sessionId
   } catch (err) {
@@ -142,6 +143,12 @@ export function notifyBoard(workspaceId: string, board: Board) {
   if (!initialized.has(workspaceId)) {
     initialized.add(workspaceId)
     for (const a of activities) seenActivities.add(a.id)
+    // First look at a workspace: pick up ready work that has no task session yet.
+    for (const item of board.items) {
+      if (item.columnId === "todo" && item.draft !== true && !item.sessionId) {
+        void drive(workspaceId, board, item, pickupPrompt)
+      }
+    }
     return
   }
   for (const a of activities) {
@@ -162,6 +169,10 @@ export function notifyBoard(workspaceId: string, board: Board) {
       } else if (a.to === "in_progress" && a.from === "review") {
         void drive(workspaceId, board, item, resumeInProgressPrompt)
       }
+    }
+    // The sidebar "Можно делать" action records item_draft, not item_moved.
+    if (a.type === "item_draft" && a.to === "ready") {
+      void drive(workspaceId, board, item, item.sessionId ? requeuePrompt : pickupPrompt)
     }
   }
 }

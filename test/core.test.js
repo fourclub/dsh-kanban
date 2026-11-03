@@ -192,7 +192,7 @@ describe('items carry only id, name, description (+ workflow metadata)', () => {
   it('created items have no comments or linkedItemIds', () => {
     const b = boardWith(1)
     const it = b.items[0]
-    expect(Object.keys(it).sort()).toEqual(['columnId', 'createdAt', 'createdBy', 'description', 'draft', 'id', 'labels', 'name', 'priority', 'sessionId', 'updatedAt'].sort())
+    expect(Object.keys(it).sort()).toEqual(['assignee', 'assignedAt', 'columnId', 'completedAt', 'createdAt', 'createdBy', 'description', 'draft', 'id', 'labels', 'name', 'priority', 'sessionId', 'startedAt', 'updatedAt'].sort())
   })
   it('cloneBoard strips legacy fields', () => {
     const b = boardWith(1)

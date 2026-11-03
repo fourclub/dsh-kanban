@@ -742,3 +742,52 @@ div:has(> .kf-root) {
 .kf-task-activity-row { display: flex; gap: 8px; font-size: 11px; color: var(--dsw-alias-label-secondary); line-height: 1.4; }
 .kf-task-activity-time { flex: 0 0 auto; opacity: 0.75; }
 .kf-task-activity-text { color: var(--dsw-alias-label-primary); }
+
+
+/* assignee / timer / priority card layout */
+.kf-card { position: relative; }
+.kf-card::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 10px;
+  bottom: 10px;
+  width: 3px;
+  border-radius: 3px;
+  background: var(--dsw-alias-border);
+  opacity: 0.6;
+}
+.kf-priority-high::before { background: #dd6b20; opacity: 1; }
+.kf-priority-urgent::before { background: #e53e3e; opacity: 1; }
+.kf-priority-low::before { background: var(--dsw-alias-label-secondary); opacity: 0.5; }
+
+.kf-card-owner {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-top: 5px;
+  font-size: 10px;
+  color: var(--dsw-alias-label-secondary);
+}
+
+.kf-owner-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--dsw-alias-border);
+  flex: 0 0 auto;
+}
+.kf-owner-dot.kf-owner-set { background: #38a169; }
+
+.kf-owner-name {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.kf-card-timer { color: var(--dsw-alias-accent); font-variant-numeric: tabular-nums; }
+.kf-card-steps { opacity: 0.8; }
+
+.kf-task-activity-icon { flex: 0 0 14px; text-align: center; }
