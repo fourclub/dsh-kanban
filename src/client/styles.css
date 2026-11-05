@@ -946,12 +946,16 @@ div:has(> .kf-root) {
    On wide boards the board itself must not scroll: the header stays, every
    column keeps its own scroll area (the "Готово" column can be long). */
 
+/* The board container itself cannot be styled from inside its own @container
+   query (a container query only matches descendants), so .kf-body is bounded
+   here and the inner scroller is .kf-columns. */
+.kf-body { overflow-y: hidden; }
+.kf-columns { min-height: 0; overflow-y: auto; }
+
 @container kf-board (min-width: 900px) {
-  .kf-body { overflow-y: hidden; }
-  .kf-columns { min-height: 0; height: 100%; }
-  .kf-columns > .kf-column { min-height: 0; overflow: hidden; }
+  .kf-columns { flex-direction: row; height: 100%; overflow: hidden; }
+  .kf-columns > .kf-column { min-height: 0; max-height: 100%; overflow: hidden; }
   .kf-column-list { min-height: 0; }
-  .kf-column-head { position: sticky; top: 0; z-index: 1; background: inherit; }
 }
 
 /* ---------------------------------------------- right-panel task view (mode=view) */
