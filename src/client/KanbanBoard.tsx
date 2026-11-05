@@ -308,6 +308,34 @@ export function KanbanBoard(props: KanbanBoardProps) {
   const [warnings, setWarnings] = useState<string[]>([])
   const [dialog, setDialog] = useState<{ item: Item | null; columnId: ColumnId } | null>(null)
   const [viewItemId, setViewItemId] = useState<string | null>(null)
+  const rootRef = useRef<HTMLDivElement | null>(null)
+
+  // The conversation view around the board is not a fixed-height flex box: the
+  // whole app page scrolls, so `height: 100%` on the board resolves to auto and
+  // the columns stretch instead of scrolling internally. Size the board to the
+  // visible area between its own top edge and the composer, then let each
+  // column scroll its own list.
+  useEffect(() => {
+    const syncHeight = () => {
+      const element = rootRef.current
+      if (!element) return
+      const top = element.getBoundingClientRect().top
+      const composer = document.querySelector<HTMLElement>('[class*="composer"]')
+      const limit = composer
+        ? Math.min(window.innerHeight, composer.getBoundingClientRect().top)
+        : window.innerHeight - 92
+      const available = Math.floor(limit - top - 10)
+      element.style.height = Math.max(320, available) + "px"
+    }
+
+    syncHeight()
+    const timer = window.setInterval(syncHeight, 1000)
+    window.addEventListener("resize", syncHeight)
+    return () => {
+      window.clearInterval(timer)
+      window.removeEventListener("resize", syncHeight)
+    }
+  }, [])
   const [adding, setAdding] = useState<ColumnId | null>(null)
   const [codeDialog, setCodeDialog] = useState(false)
   const [settingsOpen, setSettingsOpen] = useState(false)
@@ -572,7 +600,7 @@ export function KanbanBoard(props: KanbanBoardProps) {
   )
 
   return (
-    <div className="kf-root">
+    <div className="kf-root" ref={rootRef}>
       {warnings.length > 0 && (
         <div className="kf-warning">
           {warnings.map((w, i) => <div key={i}>{w}</div>)}
