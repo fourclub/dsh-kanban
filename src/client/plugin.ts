@@ -35,7 +35,7 @@ interface SessionsServiceFull {
 }
 
 interface OpenTaskRequest {
-  mode: "new" | "edit"
+  mode: "new" | "edit" | "view"
   workspaceId: string
   workspaceTitle?: string
   itemId?: string

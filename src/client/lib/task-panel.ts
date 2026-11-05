@@ -12,7 +12,7 @@ import type { ColumnId } from "./types"
 export interface TaskPanelRequest {
   /** Monotonic request id: reopening the same task still refreshes the panel. */
   requestId: number
-  mode: "new" | "edit"
+  mode: "new" | "edit" | "view"
   workspaceId: string
   workspaceTitle?: string
   itemId?: string

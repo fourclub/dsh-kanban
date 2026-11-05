@@ -791,3 +791,171 @@ div:has(> .kf-root) {
 .kf-card-steps { opacity: 0.8; }
 
 .kf-task-activity-icon { flex: 0 0 14px; text-align: center; }
+
+/* ------------------------------------------------------------------ item view
+   Read-only task dialog: grouped meta, description and the
+   "Комментарии" / "Лог" tabs. Wider than the edit dialog. */
+
+.kf-item-view {
+  width: min(860px, calc(100vw - 32px));
+  max-height: min(86vh, 920px);
+}
+
+.kf-item-view-body { gap: 14px; }
+
+.kf-item-meta {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px 14px;
+  padding: 10px 12px;
+  border: 1px solid var(--dsw-alias-border-l2);
+  border-radius: 10px;
+  background: var(--dsw-alias-bg-layer-1);
+}
+
+@media (max-width: 640px) {
+  .kf-item-meta { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+.kf-item-meta-cell { min-width: 0; font-size: 13px; overflow-wrap: anywhere; }
+
+.kf-item-session {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 8px 12px;
+  border-radius: 10px;
+  background: var(--dsw-alias-bg-layer-2);
+  font-size: 12.5px;
+}
+
+.kf-pre {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+.kf-item-description {
+  max-height: none;
+  overflow: visible;
+  padding: 10px 12px;
+  border: 1px solid var(--dsw-alias-border-l2);
+  border-radius: 10px;
+  background: var(--dsw-alias-bg-layer-1);
+}
+
+.kf-chip-row { display: flex; flex-wrap: wrap; gap: 6px; }
+
+.kf-tabs {
+  display: flex;
+  gap: 4px;
+  border-bottom: 1px solid var(--dsw-alias-border-l2);
+}
+
+.kf-tab {
+  appearance: none;
+  border: none;
+  background: none;
+  padding: 8px 10px;
+  font: inherit;
+  font-size: 13px;
+  color: var(--dsw-alias-label-secondary);
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+}
+
+.kf-tab:hover { color: var(--dsw-alias-label-primary); }
+
+.kf-tab-active {
+  color: var(--dsw-alias-label-primary);
+  font-weight: 600;
+  border-bottom-color: var(--dsw-alias-accent, var(--dsw-alias-border-l3));
+}
+
+.kf-tab-count {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: var(--dsw-alias-bg-layer-2);
+  color: var(--dsw-alias-label-tertiary);
+  font-size: 11px;
+  font-weight: 500;
+}
+
+.kf-tab-panel { display: flex; flex-direction: column; gap: 10px; }
+
+.kf-comment-list { display: flex; flex-direction: column; gap: 8px; }
+
+.kf-comment {
+  padding: 8px 10px;
+  border: 1px solid var(--dsw-alias-border-l2);
+  border-radius: 10px;
+  background: var(--dsw-alias-bg-layer-1);
+}
+
+.kf-comment-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.kf-comment-author { font-size: 12px; font-weight: 600; }
+.kf-comment-time { font-size: 11px; color: var(--dsw-alias-label-tertiary); }
+
+.kf-comment-form { display: flex; flex-direction: column; gap: 8px; }
+.kf-comment-actions { display: flex; justify-content: flex-end; }
+
+.kf-log { display: flex; flex-direction: column; gap: 2px; }
+
+.kf-log-row {
+  display: grid;
+  grid-template-columns: 10px minmax(0, 1fr) auto;
+  align-items: start;
+  gap: 8px;
+  padding: 6px 2px;
+  border-bottom: 1px solid var(--dsw-alias-border-l1, var(--dsw-alias-border-l2));
+}
+
+.kf-log-row:last-child { border-bottom: none; }
+
+.kf-log-dot {
+  width: 7px;
+  height: 7px;
+  margin-top: 6px;
+  border-radius: 50%;
+  background: var(--dsw-alias-label-tertiary);
+}
+
+.kf-log-dot.kf-log-human { background: light-dark(#2563eb, #60a5fa); }
+.kf-log-dot.kf-log-agent { background: light-dark(#7c3aed, #a78bfa); }
+
+.kf-log-main { min-width: 0; }
+.kf-log-line { font-size: 12.5px; display: flex; gap: 6px; flex-wrap: wrap; }
+.kf-log-actor { font-weight: 600; }
+.kf-log-phrase { color: var(--dsw-alias-label-secondary); }
+.kf-log-note { margin-top: 2px; font-size: 12px; color: var(--dsw-alias-label-tertiary); }
+.kf-log-time { font-size: 11px; color: var(--dsw-alias-label-tertiary); white-space: nowrap; }
+
+/* ------------------------------------------------- per-column internal scroll
+   On wide boards the board itself must not scroll: the header stays, every
+   column keeps its own scroll area (the "Готово" column can be long). */
+
+@container kf-board (min-width: 900px) {
+  .kf-body { overflow-y: hidden; }
+  .kf-columns { min-height: 0; height: 100%; }
+  .kf-columns > .kf-column { min-height: 0; overflow: hidden; }
+  .kf-column-list { min-height: 0; }
+  .kf-column-head { position: sticky; top: 0; z-index: 1; background: inherit; }
+}
+
+/* ---------------------------------------------- right-panel task view (mode=view) */
+
+.kf-task-view { display: flex; flex-direction: column; gap: 12px; }
+
+.kf-task-view-actions { display: flex; gap: 8px; flex-wrap: wrap; }

@@ -9,6 +9,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react"
 import { callFlow } from "@/lib/api"
 import { relTime } from "@/lib/activity"
+import { TaskView } from "./TaskView"
 import { COLUMN_IDS, COLUMN_TITLES, PRIORITIES, PRIORITY_LABELS, type Board, type ColumnId, type Item, type Priority } from "@/lib/types"
 import { closeTaskPanel, requestTaskPanel, useTaskPanel } from "@/lib/task-panel"
 
@@ -200,6 +201,48 @@ export function TaskPanel({ sessions }: TaskPanelProps) {
     return <div className="kf-panel-empty">Выберите задачу на доске «Канбан».</div>
   }
 
+  if (request.mode === "view") {
+    const postComment = async (text: string) => {
+      if (!item) return
+      const response = await callFlow("commentItem", { id: item.id, text }, request.workspaceId)
+      if (response && response.ok === false) setError(response.error || "Не удалось добавить комментарий")
+      await load()
+    }
+
+    return (
+      <div className="kf-task-panel">
+        <div className="kf-task-panel-head">
+          <div className="kf-task-panel-title">
+            <span className="kf-task-panel-code">{item ? item.id : "Задача"}</span>
+            {item && <span className={item.draft ? "kf-pill kf-pill-draft" : "kf-pill kf-pill-ready"}>{item.draft ? "Черновик" : "Можно делать"}</span>}
+          </div>
+          {item && (
+            <div className="kf-task-panel-stats">
+              <StatChip icon="🤖" value={item.stats?.agents || 0} title="Агенты, участвующие в задаче" />
+              <StatChip icon="👥" value={item.stats?.subagents || 0} title="Субагенты" />
+              <StatChip icon="⚙" value={item.stats?.jobs || 0} title="Фоновые job" />
+            </div>
+          )}
+        </div>
+
+        {error && <div className="kf-panel-error">{error}</div>}
+
+        {item && board ? (
+          <TaskView
+            item={item}
+            board={board}
+            busy={busy}
+            onEdit={() => requestTaskPanel({ mode: "edit", workspaceId: request.workspaceId, workspaceTitle: request.workspaceTitle, itemId: item.id })}
+            onComment={postComment}
+            onOpenSession={(target) => { if (sessions && target.sessionId) sessions.open(target.sessionId) }}
+            canOpenSession={Boolean(sessions)}
+          />
+        ) : (
+          <div className="kf-panel-empty">{board ? "Задача не найдена." : "Загружаем задачу…"}</div>
+        )}
+      </div>
+    )
+  }
   return (
     <div className="kf-task-panel">
       <div className="kf-task-panel-head">

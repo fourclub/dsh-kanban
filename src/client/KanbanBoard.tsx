@@ -28,6 +28,7 @@ import { dismissBoardTab } from "./Controllers"
 import { COLUMN_IDS, COLUMN_TITLES, PRIORITY_LABELS, type Board, type ColumnId, type Item } from "@/lib/types"
 import { ArchiveDialog } from "./ArchiveDialog"
 import { CardDialog, type CardFormValues } from "./CardDialog"
+import { ItemDialog } from "./ItemDialog"
 import { CodeDialog } from "./CodeDialog"
 import { SettingsPopover } from "./SettingsPanel"
 
@@ -41,7 +42,7 @@ export interface KanbanBoardProps {
   workspaceTitle?: string
   sessions?: SessionsService
   archiveSession?: (sessionId: string) => void
-  onOpenTask?: (request: { mode: "new" | "edit"; workspaceId: string; workspaceTitle?: string; itemId?: string; columnId?: ColumnId }) => void
+  onOpenTask?: (request: { mode: "new" | "edit" | "view"; workspaceId: string; workspaceTitle?: string; itemId?: string; columnId?: ColumnId }) => void
 }
 
 const combinationCollision: CollisionDetection = (args) => {
@@ -76,6 +77,7 @@ interface CardProps {
   lastActivity?: ActivityParts
   stepCount: number
   onOpenSession: () => void
+  onView: () => void
   onDetails: () => void
   onReady: () => void
   onArchive: () => void
@@ -93,7 +95,7 @@ function fmtElapsed(from: string | null | undefined): string {
   return Math.floor(hours / 24) + " д " + (hours % 24) + " ч"
 }
 
-function KfCard({ item, flash, lastActivity, stepCount, onOpenSession, onDetails, onReady, onArchive }: CardProps) {
+function KfCard({ item, flash, lastActivity, stepCount, onOpenSession, onView, onDetails, onReady, onArchive }: CardProps) {
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({ id: item.id })
   // Hover status tooltip: shows ONLY the agent's statusNote after a short
   // delay; suppressed while dragging. Rendered through a portal because
@@ -151,7 +153,7 @@ function KfCard({ item, flash, lastActivity, stepCount, onOpenSession, onDetails
       onBlur={tipOff}
       onClick={(e) => {
         if ((e.target as Element).closest(".kf-edit-fab, .kf-archive-fab, .kf-ready-btn, .kf-session-badge")) return
-        onDetails()
+        onView()
       }}
     >
       <button type="button" className="kf-edit-fab" title="Детали" aria-label={"Детали " + item.id} onClick={(e) => { e.stopPropagation(); onDetails() }}>
@@ -263,12 +265,13 @@ interface ColumnProps {
   onAdd: (name: string, description: string) => void
   onCancelAdd: () => void
   onOpenSession: (item: Item) => void
+  onView: (item: Item) => void
   onDetails: (item: Item) => void
   onReady: (item: Item) => void
   onArchive: (item: Item) => void
 }
 
-function KfColumn({ colId, highlighted, adding, items, flashIds, lastLines, stepCounts, onAdd, onCancelAdd, onOpenSession, onDetails, onReady, onArchive }: ColumnProps) {
+function KfColumn({ colId, highlighted, adding, items, flashIds, lastLines, stepCounts, onAdd, onCancelAdd, onOpenSession, onView, onDetails, onReady, onArchive }: ColumnProps) {
   const { setNodeRef } = useDroppable({ id: colId })
   return (
     <div className={"kf-column kf-" + colId + (highlighted ? " kf-over" : "")}>
@@ -287,6 +290,7 @@ function KfColumn({ colId, highlighted, adding, items, flashIds, lastLines, step
             lastActivity={lastLines.get(item.id)}
             stepCount={stepCounts.get(item.id) || 0}
             onOpenSession={() => onOpenSession(item)}
+            onView={() => onView(item)}
             onDetails={() => onDetails(item)}
             onReady={() => onReady(item)}
             onArchive={() => onArchive(item)}
@@ -303,6 +307,7 @@ export function KanbanBoard(props: KanbanBoardProps) {
   const [error, setError] = useState("")
   const [warnings, setWarnings] = useState<string[]>([])
   const [dialog, setDialog] = useState<{ item: Item | null; columnId: ColumnId } | null>(null)
+  const [viewItemId, setViewItemId] = useState<string | null>(null)
   const [adding, setAdding] = useState<ColumnId | null>(null)
   const [codeDialog, setCodeDialog] = useState(false)
   const [settingsOpen, setSettingsOpen] = useState(false)
@@ -351,6 +356,28 @@ export function KanbanBoard(props: KanbanBoardProps) {
     [workspaceId, applyBoard],
   )
 
+  const viewItem = board && viewItemId ? board.items.find((i) => i.id === viewItemId) ?? null : null
+
+  const closeView = useCallback(() => setViewItemId(null), [])
+
+  const startEdit = useCallback(
+    (item: Item) => {
+      setViewItemId(null)
+      if (onOpenTask) {
+        onOpenTask({ mode: "edit", workspaceId, workspaceTitle, itemId: item.id })
+      } else {
+        setDialog({ item, columnId: item.columnId as ColumnId })
+      }
+    },
+    [onOpenTask, workspaceId, workspaceTitle],
+  )
+
+  const commentItem = useCallback(
+    async (id: string, text: string) => {
+      await act("commentItem", { id, text })
+    },
+    [act],
+  )
   // initial load + poll while mounted
   useEffect(() => {
     let disposed = false
@@ -518,9 +545,14 @@ export function KanbanBoard(props: KanbanBoardProps) {
               }}
               onCancelAdd={() => setAdding(null)}
               onOpenSession={openSession}
-              onDetails={(item) => onOpenTask
-                ? onOpenTask({ mode: "edit", workspaceId, workspaceTitle, itemId: item.id })
-                : setDialog({ item, columnId: item.columnId as ColumnId })}
+              onView={(item) => {
+                if (onOpenTask) {
+                  onOpenTask({ mode: "view", workspaceId, workspaceTitle, itemId: item.id })
+                } else {
+                  setViewItemId(item.id)
+                }
+              }}
+              onDetails={(item) => setViewItemId(item.id)}
               onReady={(item) => { void act("setDraft", { id: item.id, draft: false }) }}
               onArchive={archiveItem}
             />
@@ -555,7 +587,17 @@ export function KanbanBoard(props: KanbanBoardProps) {
       ) : (
         !error && <div className="kf-loading">Loading board…</div>
       )}
-      {board && dialog && !onOpenTask && (
+      {board && viewItem && (
+        <ItemDialog
+          item={viewItem}
+          board={board}
+          onClose={closeView}
+          onEdit={() => startEdit(viewItem)}
+          onComment={(text) => commentItem(viewItem.id, text)}
+          onOpenSession={openSession}
+          canOpenSession={Boolean(sessions)}
+        />
+      )}      {board && dialog && !onOpenTask && (
         <CardDialog
           item={dialog.item}
           board={board}

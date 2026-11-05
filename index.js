@@ -31,6 +31,7 @@ import {
   setStatus,
   setDraft,
   assignItem,
+  record,
   deriveCode,
 } from './lib/core.js'
 
@@ -202,7 +203,7 @@ export function apply(ctx) {
       return value
     }
 
-    if (actor === 'agent' && ['updateItem', 'moveItem', 'deleteItem', 'setStatus'].includes(method)) {
+    if (actor === 'agent' && ['updateItem', 'moveItem', 'deleteItem', 'setStatus', 'commentItem'].includes(method)) {
       const target = board.items.find((i) => i.id === String(a.id || ''))
       if (target && target.draft === true && target.columnId === 'backlog') {
         return fail('This item is a draft and belongs to the human. Never edit, move or report status on drafts; only items marked ready (To Do) are actionable.')
@@ -301,6 +302,16 @@ export function apply(ctx) {
         if (r.error) return fail(r.error)
         await save(workspace, session)
         return ok({ message: r.message })
+      }
+      case 'commentItem': {
+        const item = board.items.find((i) => i.id === String(a.id || ''))
+        if (!item) return fail('Item not found: ' + String(a.id || ''))
+        const text = String(a.text || '').replace(/\r\n/g, '\n').trim().slice(0, 4000)
+        if (!text) return fail('Comment text is required')
+        record(board, { itemId: item.id, type: 'item_commented', source: actor === 'agent' ? 'agent' : 'human', text })
+        await save(workspace, session)
+        const commented = { ...item, stats: await statsOf(item.sessionId) }
+        return ok({ item: commented, board: cloneBoard(board), message: 'Comment added' })
       }
       case 'setConfirmRequired': {
         const r = setConfirmRequired(board, a.value === true)
