@@ -12,7 +12,7 @@ export interface ItemDialogProps {
   board: Board
   onClose: () => void
   onEdit: () => void
-  onComment: (text: string) => Promise<void>
+  onComment: (text: string) => Promise<string | null>
   onOpenSession: (item: Item) => void
   canOpenSession?: boolean
 }
@@ -25,6 +25,7 @@ export function ItemDialog({ item, board, onClose, onEdit, onComment, onOpenSess
   const [tab, setTab] = useState<TabId>("comments")
   const [draft, setDraft] = useState("")
   const [sending, setSending] = useState(false)
+  const [commentError, setCommentError] = useState("")
   const closeRef = useRef<HTMLButtonElement | null>(null)
   const textRef = useRef<HTMLTextAreaElement | null>(null)
 
@@ -56,9 +57,14 @@ export function ItemDialog({ item, board, onClose, onEdit, onComment, onOpenSess
     const text = draft.trim()
     if (!text || sending) return
     setSending(true)
+    setCommentError("")
     try {
-      await onComment(text)
-      setDraft("")
+      const failure = await onComment(text)
+      if (failure) {
+        setCommentError(failure)
+      } else {
+        setDraft("")
+      }
     } finally {
       setSending(false)
       textRef.current?.focus()
@@ -191,6 +197,7 @@ export function ItemDialog({ item, board, onClose, onEdit, onComment, onOpenSess
                     }
                   }}
                 />
+                {commentError ? <div className="kf-panel-error">{commentError}</div> : null}
                 <div className="kf-comment-actions">
                   <button type="button" className="kf-btn kf-primary" disabled={!draft.trim() || sending} onClick={() => void submit()}>
                     {sending ? "Отправка…" : "Добавить комментарий"}

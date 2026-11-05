@@ -373,10 +373,19 @@ export function KanbanBoard(props: KanbanBoardProps) {
   )
 
   const commentItem = useCallback(
-    async (id: string, text: string) => {
-      await act("commentItem", { id, text })
+    async (id: string, text: string): Promise<string | null> => {
+      const response = await callFlow("commentItem", { id, text }, workspaceId)
+      if (response && response.ok === false) {
+        const raw = String(response.error || "")
+        if (raw.includes("Unknown kanban-flow method")) {
+          return "Комментарии станут доступны после перезапуска Harness: обновилась хост-часть плагина."
+        }
+        return raw || "Не удалось добавить комментарий"
+      }
+      applyBoard(response)
+      return null
     },
-    [act],
+    [workspaceId, applyBoard],
   )
   // initial load + poll while mounted
   useEffect(() => {
